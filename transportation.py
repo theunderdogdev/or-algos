@@ -1,6 +1,6 @@
 from typing import List, Self, Dict
 from copy import deepcopy
-from numpy import argmin, unravel_index, array
+from numpy import argmin, unravel_index, array, diff, argmax, delete
 from math import inf, isinf
 from json import load
 from os.path import exists
@@ -43,6 +43,7 @@ class Transportation:
             else:
                 print(f"All keys {keys} must be included")
         return self
+
     def input(
         self,
         cost_matrix: List[List[int | float]],
@@ -103,7 +104,44 @@ class Transportation:
                 arr[:, j] = inf
 
     def __vojels_approx(self):
-        pass
+        arr = array(self.matrix)
+        print(arr)
+        arr = arr[0 : arr.shape[0] - 1, 0 : arr.shape[1] - 1]
+        row_pens = array([0 for _ in range(arr.shape[0])])
+        col_pens = array([0 for _ in range(arr.shape[1])])
+        # while not self.__is_exhausted():
+        for _ in range(10):
+            print(f"arr shape: {arr.shape}\nrow shape: {row_pens.shape}\ncol shape: {col_pens.shape}")
+            for r in range(arr.shape[0]):
+                print("row", diff(sorted(set(arr[r, :]))), sep=": ")
+                row_pens[r] = abs(diff(sorted(set(arr[r, :]))[:2])[0])
+            for c in range(arr.shape[1]):
+                print("col", sorted(set(arr[:, c])), sep=": ")
+                col_pens[c] = abs(diff(sorted(set(arr[:, c]))[:2])[0])
+            i, j = 0, 0
+            if max(row_pens) < max(col_pens):
+                # go with col
+                j = unravel_index(argmax(col_pens), col_pens.shape)
+                i = unravel_index(argmin(arr[:, j]), arr[:, j].shape)
+                i, j = i[0], j[0]
+            else:
+                i = unravel_index(argmax(row_pens), row_pens.shape)
+                j = unravel_index(argmin(arr[i, :]), arr[i, :].shape)
+                i, j = i[0], j[0]
+            factor = min(self.matrix[i][-1], self.matrix[-1][j])
+            self.matrix[i][-1] -= factor
+            self.matrix[-1][j] -= factor
+            if self.matrix[i][-1] == 0:
+                arr = delete(arr, i, 0)
+                row_pens = delete(row_pens, i, 0)
+            if self.matrix[-1][j] == 0:
+                arr = delete(arr, j, 1)
+                col_pens = delete(col_pens, j, 0)
+            print(f"Factor: {factor}")
+            print(arr)
+            print(row_pens)
+            print(col_pens)
+            print(array(self.matrix), end="\n\n===================================\n\n")
 
     def solve(self, method: str = "NW") -> Self:
         if self.matrix is not None:
@@ -146,4 +184,4 @@ if __name__ == "__main__":
     # )
 
     # print(transp.cost)
-    print(Transportation().input_file('./q.json').solve(method="NW").cost)
+    print(Transportation().input_file("./q.json").solve(method="VA").cost)
