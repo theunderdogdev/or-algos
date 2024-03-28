@@ -1,12 +1,18 @@
 from typing import List, Self, Dict
 from copy import deepcopy
-from numpy import argmin, unravel_index, array, diff, argmax, delete
-from math import inf, isinf
+from numpy import argmin, unravel_index, array, diff, inf, isinf, where
+from math import isinf as misinf
 from json import load
 from os.path import exists
 
 
 class Transportation:
+    def __diff_arr(self, arr: List) -> List:
+        if len(arr) > 1:
+            return diff(where(isinf(arr), 0.0, arr))
+        else:
+            return arr
+
     def __init__(self) -> None:
         self.matrix: List[List[int | float]] | None = None
         self.is_balanced: bool = False
@@ -67,8 +73,8 @@ class Transportation:
         return self
 
     def __is_exhausted(self):
-        return all([row[-1] == 0 or isinf(row[-1]) for row in self.matrix]) and all(
-            [demand == 0 or isinf(demand) for demand in self.matrix[-1]]
+        return all([row[-1] == 0 or misinf(row[-1]) for row in self.matrix]) and all(
+            [demand == 0 or misinf(demand) for demand in self.matrix[-1]]
         )
 
     def __north_west(self) -> None:
@@ -107,41 +113,41 @@ class Transportation:
         arr = array(self.matrix)
         print(arr)
         arr = arr[0 : arr.shape[0] - 1, 0 : arr.shape[1] - 1]
-        row_pens = array([0 for _ in range(arr.shape[0])])
-        col_pens = array([0 for _ in range(arr.shape[1])])
-        # while not self.__is_exhausted():
-        for _ in range(10):
-            print(f"arr shape: {arr.shape}\nrow shape: {row_pens.shape}\ncol shape: {col_pens.shape}")
+        row_pens = array([0.0 for _ in range(arr.shape[0])])
+        col_pens = array([0.0 for _ in range(arr.shape[1])])
+        while not self.__is_exhausted():
             for r in range(arr.shape[0]):
-                print("row", diff(sorted(set(arr[r, :]))), sep=": ")
-                row_pens[r] = abs(diff(sorted(set(arr[r, :]))[:2])[0])
+                mins_row = sorted(set(arr[r, :]))[:2]
+                row_pens[r] = abs(self.__diff_arr(mins_row)[0])
             for c in range(arr.shape[1]):
-                print("col", sorted(set(arr[:, c])), sep=": ")
-                col_pens[c] = abs(diff(sorted(set(arr[:, c]))[:2])[0])
+                mins_col = sorted(set(arr[:, c]))[:2]
+                col_pens[c] = abs(self.__diff_arr(mins_col)[0])
             i, j = 0, 0
-            if max(row_pens) < max(col_pens):
-                # go with col
-                j = unravel_index(argmax(col_pens), col_pens.shape)
+            rev_col = where(isinf(col_pens), -inf, col_pens)
+            rev_row = where(isinf(row_pens), -inf, row_pens)
+            if max(rev_row) < max(rev_col):
+                j = unravel_index(
+                    where(isinf(col_pens), -inf, col_pens).argmax(), col_pens.shape
+                )
                 i = unravel_index(argmin(arr[:, j]), arr[:, j].shape)
                 i, j = i[0], j[0]
             else:
-                i = unravel_index(argmax(row_pens), row_pens.shape)
-                j = unravel_index(argmin(arr[i, :]), arr[i, :].shape)
+                i = unravel_index(
+                    where(isinf(row_pens), -inf, row_pens).argmax(), row_pens.shape
+                )
+                j = unravel_index(argmin(arr[i, :][0]), arr[i, :][0].shape)
                 i, j = i[0], j[0]
             factor = min(self.matrix[i][-1], self.matrix[-1][j])
+            print(f"({i}, {j}), Factor: {factor}, cost: {self.matrix[i][j]}")
+            self.cost = self.cost + self.matrix[i][j] * factor
             self.matrix[i][-1] -= factor
             self.matrix[-1][j] -= factor
             if self.matrix[i][-1] == 0:
-                arr = delete(arr, i, 0)
-                row_pens = delete(row_pens, i, 0)
+                arr[i, :] = inf
+                row_pens[i] = inf
             if self.matrix[-1][j] == 0:
-                arr = delete(arr, j, 1)
-                col_pens = delete(col_pens, j, 0)
-            print(f"Factor: {factor}")
-            print(arr)
-            print(row_pens)
-            print(col_pens)
-            print(array(self.matrix), end="\n\n===================================\n\n")
+                arr[:, j] = inf
+                col_pens[j] = inf
 
     def solve(self, method: str = "NW") -> Self:
         if self.matrix is not None:
@@ -159,29 +165,4 @@ class Transportation:
 
 
 if __name__ == "__main__":
-    # transp = (
-    #     Transportation()
-    #     .input(
-    #         [
-    #             [
-    #                 16,
-    #                 18,
-    #                 21,
-    #                 22,
-    #             ],
-    #             [
-    #                 17,
-    #                 19,
-    #                 14,
-    #                 13,
-    #             ],
-    #             [32, 11, 15, 10],
-    #         ],
-    #         [150, 160, 90],
-    #         [140, 120, 90, 50],
-    #     )
-    #     .solve(method="NW")
-    # )
-
-    # print(transp.cost)
     print(Transportation().input_file("./q.json").solve(method="VA").cost)
