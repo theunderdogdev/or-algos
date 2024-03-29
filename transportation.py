@@ -17,6 +17,7 @@ class Transportation:
         self.matrix: List[List[int | float]] | None = None
         self.is_balanced: bool = False
         self.cost = 0
+        self.__verbose: bool = False
 
     def input_file(self, json_path: str) -> Self:
         if not exists(json_path):
@@ -78,28 +79,36 @@ class Transportation:
         )
 
     def __north_west(self) -> None:
-        _i, _j = 0, 0
+        if self.__verbose:
+            print(array(self.matrix))
+        i, j = 0, 0
         while (
             not self.__is_exhausted()
-            and _i < len(self.matrix) - 1
-            and _j < len(self.matrix[0]) - 1
+            and i < len(self.matrix) - 1
+            and j < len(self.matrix[0]) - 1
         ):
-            factor = min(self.matrix[_i][-1], self.matrix[-1][_j])
-            self.cost = self.cost + self.matrix[_i][_j] * factor
-            self.matrix[_i][-1] -= factor
-            self.matrix[-1][_j] -= factor
-            if self.matrix[_i][-1] == 0:
-                _i += 1
-            if self.matrix[-1][_j] == 0:
-                _j += 1
+            factor = min(self.matrix[i][-1], self.matrix[-1][j])
+            if self.__verbose:
+                print(f"({i}, {j}), Factor: {factor}, cost: {self.matrix[i][j]}")
+
+            self.cost = self.cost + self.matrix[i][j] * factor
+            self.matrix[i][-1] -= factor
+            self.matrix[-1][j] -= factor
+            if self.matrix[i][-1] == 0:
+                i += 1
+            if self.matrix[-1][j] == 0:
+                j += 1
 
     def __least_cost(self):
+        if self.__verbose:
+            print(array(self.matrix))
         arr = array(self.matrix)
-        print(self.matrix)
         arr = arr[0 : arr.shape[0] - 1, 0 : arr.shape[1] - 1]
         while not self.__is_exhausted():
             i, j = unravel_index(argmin(arr), arr.shape)
             factor = min(self.matrix[i][-1], self.matrix[-1][j])
+            if self.__verbose:
+                print(f"({i}, {j}), Factor: {factor}, cost: {self.matrix[i][j]}")
             self.cost = self.cost + self.matrix[i][j] * factor
             self.matrix[i][-1] -= factor
             self.matrix[-1][j] -= factor
@@ -110,8 +119,9 @@ class Transportation:
                 arr[:, j] = inf
 
     def __vojels_approx(self):
+        if self.__verbose:
+            print(array(self.matrix))
         arr = array(self.matrix)
-        print(arr)
         arr = arr[0 : arr.shape[0] - 1, 0 : arr.shape[1] - 1]
         row_pens = array([0.0 for _ in range(arr.shape[0])])
         col_pens = array([0.0 for _ in range(arr.shape[1])])
@@ -138,7 +148,8 @@ class Transportation:
                 j = unravel_index(argmin(arr[i, :][0]), arr[i, :][0].shape)
                 i, j = i[0], j[0]
             factor = min(self.matrix[i][-1], self.matrix[-1][j])
-            print(f"({i}, {j}), Factor: {factor}, cost: {self.matrix[i][j]}")
+            if self.__verbose:
+                print(f"({i}, {j}), Factor: {factor}, cost: {self.matrix[i][j]}")
             self.cost = self.cost + self.matrix[i][j] * factor
             self.matrix[i][-1] -= factor
             self.matrix[-1][j] -= factor
@@ -149,7 +160,9 @@ class Transportation:
                 arr[:, j] = inf
                 col_pens[j] = inf
 
-    def solve(self, method: str = "NW") -> Self:
+    def solve(self, method: str = "NW", verbose: bool = False) -> Self:
+        self.__verbose = verbose
+        self.cost = 0
         if self.matrix is not None:
             print("Calling solve, method: ", method)
             match method:
@@ -165,4 +178,11 @@ class Transportation:
 
 
 if __name__ == "__main__":
-    print(Transportation().input_file("./q.json").solve(method="VA").cost)
+    solver = Transportation()
+    print(solver.input_file("./q.json").solve("NW").cost)
+    print(solver.input_file("./q.json").solve("LC").cost)
+    print(solver.input_file("./q.json").solve("VA").cost)
+    print("=============================================")
+    print(solver.input_file("./q2.json").solve("NW").cost)
+    print(solver.input_file("./q2.json").solve("LC").cost)
+    print(solver.input_file("./q2.json").solve("VA").cost)
