@@ -4,6 +4,7 @@ from numpy import argmin, unravel_index, array, diff, inf, isinf, where
 from math import isinf as misinf
 from json import load
 from os.path import exists
+from sys import version_info
 
 
 class Transportation:
@@ -161,19 +162,32 @@ class Transportation:
                 col_pens[j] = inf
 
     def solve(self, method: str = "NW", verbose: bool = False) -> Self:
+        __methods = {
+            "NW": self.__north_west,
+            "LC": self.__least_cost,
+            "VA": self.__vojels_approx,
+        }
         self.__verbose = verbose
         self.cost = 0
         if self.matrix is not None:
             print("Calling solve, method: ", method)
-            match method:
-                case "NW":
-                    self.__north_west()
-                case "LC":
-                    self.__least_cost()
-                case "VA":
-                    self.__vojels_approx()
-                case _:
+            if version_info.major == 3 and version_info.minor >= 10:
+                match method:
+                    case "NW":
+                        self.__north_west()
+                    case "LC":
+                        self.__least_cost()
+                    case "VA":
+                        self.__vojels_approx()
+                    case _:
+                        print(f"No {method} method found")
+            else:
+                method_f = __methods.get(method, None)
+                if method_f is not None:
+                    method_f()
+                else:
                     print(f"No {method} method found")
+
         return self
 
 
