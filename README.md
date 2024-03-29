@@ -13,10 +13,10 @@ Install the dependencies
 pip install -r requirements.txt
 ```
 
-### module transportation
+### Module: transportation
 Contains the algorithms that solve the transportation problems
 
 Algorithms:
 - North West Method
 - Least Cost Method
-- Vojels Approximation Method
+- Vogel's Approximation Method
